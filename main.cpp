@@ -55,7 +55,7 @@ int main(int argc, char* argv[]){
   for(int i = 1; i < 4; i++) {
     target_ip[i] = (uint8_t)atoi(strtok(NULL, "."));
   }
-
+  //printf("sender_ip"
   //get my mac address
   pcap_if_t *alldevps;
   char errbuf[PCAP_ERRBUF_SIZE];
@@ -80,10 +80,10 @@ int main(int argc, char* argv[]){
     fprintf(stderr, "couldn't open device %s: %s\n", dev, errbuf);
     return -1;
   }
-
+  bool check = true;
   //ping to sender_ip and get sender_mac
   uint8_t sender_mac[6];
-  while (true) {
+  while (check) {
     struct pcap_pkthdr* header;
     const u_char* packet;
     int res = pcap_next_ex(handle, &header, &packet);
@@ -92,15 +92,15 @@ int main(int argc, char* argv[]){
 
     ping(sender_ip);
     unsigned char ip_check[2] = {0x08, 0x00};
-    if(!memcmp(packet+12, ip_check, 2)) {
-      if(packet[30] == sender_ip[0] && packet[31] == sender_ip[1] && packet[32] == sender_ip[2] && packet[33] == sender_ip[3]){
+    if(packet[30] == sender_ip[0] && packet[31] == sender_ip[1] && packet[32] == sender_ip[2] && packet[33] == sender_ip[3]){
         for(int i = 0; i < 6; i++){
           sender_mac[i] = (uint8_t)packet[i];
         }
+        check = false;
         break;
-      }
     }
   }
+  
 
   //make payload packet
   packet pk;
@@ -114,12 +114,12 @@ int main(int argc, char* argv[]){
     pk.target_ip[i] = target_ip[i];
     pk.sender_ip[i] = sender_ip[i];
   }
-  pk.type = 0x0806; //ethernet
-  pk.hw_type = 0x0001; //arp
-  pk.protocol_type = 0x0800; //ip
+  pk.type = htons(0x0806); //ethernet
+  pk.hw_type = htons(0x0001); //arp
+  pk.protocol_type = htons(0x0800); //ip
   pk.hw_size = 0x06;
   pk.protocol_size = 0x04;
-  pk.opcode = 0x0002; 
+  pk.opcode = htons(0x0002); 
   //send packet
   int length = sizeof(pk);
   unsigned char packet[42];
